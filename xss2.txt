@@ -1,0 +1,41 @@
+重写ApiControllerActionInvoker的InvokeActionAsync方法
+
+public class XssActionInvoker : ApiControllerActionInvoker {
+        public override System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> InvokeActionAsync(HttpActionContext filterContext, System.Threading.CancellationToken cancellationToken)
+        {
+            Dictionary<string, object> changeDictionary = new Dictionary<string, object>();
+            foreach (var para in filterContext.ActionArguments)
+            {
+                if (para.Value.GetType()==typeof(string))
+                {
+                    var value = para.Value as string;
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        value = Sanitizer.GetSafeHtmlFragment(value);
+                        changeDictionary.Add(para.Key, value);
+                    }
+                }
+            }
+            foreach (var changePara in changeDictionary)
+            {
+                filterContext.ActionArguments[changePara.Key] = changePara.Value;
+            }
+            return base.InvokeActionAsync(filterContext, cancellationToken);
+        }
+    }
+
+
+
+
+
+
+
+public class WebApiApplication : System.Web.HttpApplication
+    {
+        protected void Application_Start()
+        {
+
+            GlobalConfiguration.Configuration.Services.Replace(typeof(IHttpActionInvoker), new XssActionInvoker());
+        }
+    }
+

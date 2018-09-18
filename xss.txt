@@ -1,0 +1,74 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Http;
+using System.Web.Mvc;
+using System.Web.Optimization;
+using System.Web.Routing;
+using System.Web.Http.Controllers;
+using Microsoft.Security.Application;
+using System.Reflection;
+using System.ComponentModel;
+using System.Threading;
+using System.Net.Http;
+
+namespace MyNamespace
+{
+    public class AntiXssHttpMessageHandler : DelegatingHandler
+    {
+        protected override System.Threading.Tasks.Task<HttpResponseMessage> SendAsync(HttpRequestMessage Request, System.Threading.CancellationToken cancellationToken)
+        {
+            foreach (var key in Request.RequestUri.ParseQueryString().AllKeys)
+            {
+                var value = Sanitizer.GetSafeHtmlFragment(Request.RequestUri.ParseQueryString()[key]);
+                if (value != Request.RequestUri.ParseQueryString()[key])
+                {
+                    throw new Exception();
+                }
+            }
+            return base.SendAsync(Request, cancellationToken);
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+public static class WebApiConfig
+    {
+        public static void Register(HttpConfiguration config)
+        {
+            config.Routes.MapHttpRoute(
+                name: "DefaultApi",
+                routeTemplate: "api/{controller}/{id}",
+                defaults: new { id = RouteParameter.Optional }
+            );
+
+            config.EnableSystemDiagnosticsTracing();
+            config.MessageHandlers.Add(new AntiXssHttpMessageHandler());
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
